@@ -25,8 +25,8 @@ def build_faiss_index(embeddings):
     index.add(np.array(embeddings).astype("float32"))
     return index
 
-st.title("📘 Assistant conformité (PDF + IA)")
-st.write("Chargez un PDF réglementaire, posez une question, et obtenez une réponse basée sur le contenu.")
+st.title("📘 Assistant conformité (multi-PDF + IA)")
+st.write("Chargez un ou plusieurs fichiers PDF réglementaires, posez une question, et obtenez une réponse basée sur leur contenu.")
 
 uploaded_files = st.file_uploader("📤 Chargez un ou plusieurs fichiers PDF", type="pdf", accept_multiple_files=True)
 
@@ -47,12 +47,7 @@ if uploaded_files:
     embeddings = embed_chunks(all_chunks)
     index = build_faiss_index(np.array(embeddings))
 
-    embeddings = embed_chunks(chunks)
-    index = build_faiss_index(np.array(embeddings))
-
-    st.success(f"✅ Index de {len(chunks)} morceaux construit.")
-
-    question = st.text_input("❓ Posez votre question liée au PDF :")
+    question = st.text_input("❓ Posez votre question liée aux documents :")
 
     if question:
         question_vec = model.encode([question])
@@ -62,4 +57,5 @@ if uploaded_files:
         st.markdown("### 🧠 Contexte extrait :")
         st.write(context)
 
-        st.markdown("⚠️ Cette version ne génère pas encore de réponse résumée (LLM). Tu veux qu’on l’ajoute ?")
+        st.markdown("⚠️ Cette version ne génère pas encore de réponse résumée avec un LLM. Souhaitez-vous qu’on l’ajoute ?")
+
