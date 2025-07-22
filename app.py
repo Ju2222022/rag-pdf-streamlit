@@ -1,22 +1,25 @@
 import os
 import fitz  # PyMuPDF
 import faiss
+import json
 import numpy as np
 import streamlit as st
 import torch
-from tempfile import NamedTemporaryFile
 from sentence_transformers import SentenceTransformer
 
-# === CONFIG ===
+# === CONFIGURATION ===
 EMBED_MODEL = "all-MiniLM-L6-v2"
-model = SentenceTransformer(EMBED_MODEL)
-model.to(torch.device("cpu"))  # 🧠 Forcer l'utilisation du CPU
+PDF_FOLDER = "pdf_EU_elec_regulations"
 
-def pdf_to_chunks(pdf_file, chunk_size=500):
-    doc = fitz.open(pdf_file)
+# Forcer CPU (important pour Streamlit Cloud)
+model = SentenceTransformer(EMBED_MODEL)
+model.to(torch.device("cpu"))
+
+# === FONCTIONS ===
+def pdf_to_chunks(filepath, chunk_size=500):
+    doc = fitz.open(filepath)
     full_text = "\n".join([page.get_text() for page in doc])
-    chunks = [full_text[i:i+chunk_size] for i in range(0, len(full_text), chunk_size)]
-    return chunks
+    return [full_text[i:i + chunk_size] for i in range(0, len(full_text), chunk_size)]
 
 def embed_chunks(chunks):
     return model.encode(chunks)
@@ -27,49 +30,43 @@ def build_faiss_index(embeddings):
     index.add(np.array(embeddings).astype("float32"))
     return index
 
-st.title("📘 Assistant conformité (multi-PDF + IA)")
-st.write("Chargez un ou plusieurs fichiers PDF réglementaires, posez une question, et obtenez une réponse basée sur leur contenu.")
+# === INTERFACE STREAMLIT ===
+st.title("📘 Génération de l'index RAG à partir de PDF")
+st.write("Sélectionnez jusqu’à 3 fichiers PDF réglementaires à intégrer dans un index vectoriel.")
 
-uploaded_files = st.file_uploader("📤 Chargez un ou plusieurs fichiers PDF", type="pdf", accept_multiple_files=True)
+# 📂 Liste les fichiers PDF du dossier
+pdf_files = [f for f in os.listdir(PDF_FOLDER) if f.endswith(".pdf")]
 
-if uploaded_files:
+selected_files = st.multiselect(
+    "📄 Choisissez jusqu’à 3 fichiers PDF",
+    options=pdf_files,
+    default=pdf_files[:1]
+)
+
+if len(selected_files) > 3:
+    st.warning("⚠️ Veuillez ne pas dépasser 3 fichiers à la fois pour éviter les limites de mémoire.")
+    st.stop()
+
+if selected_files:
     all_chunks = []
-
-    for f in uploaded_files:
-        with NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
-            tmp.write(f.read())
-            tmp_path = tmp.name
-
-        st.info(f"📄 Lecture de : {f.name}")
-        chunks = pdf_to_chunks(tmp_path)
+    for fname in selected_files:
+        fpath = os.path.join(PDF_FOLDER, fname)
+        st.info(f"📥 Lecture : {fname}")
+        chunks = pdf_to_chunks(fpath)
         all_chunks.extend(chunks)
 
-    st.success(f"✅ {len(uploaded_files)} fichiers lus. {len(all_chunks)} morceaux extraits.")
+    st.success(f"✅ {len(selected_files)} fichier(s) chargé(s), {len(all_chunks)} morceaux de texte extraits.")
 
     embeddings = embed_chunks(all_chunks)
     index = build_faiss_index(np.array(embeddings))
 
-    question = st.text_input("❓ Posez votre question liée aux documents :")
+    # 💾 Sauvegarde de l'index
+    faiss.write_index(index, "index.faiss")
+    with open("chunks.json", "w", encoding="utf-8") as f:
+        json.dump(all_chunks, f, ensure_ascii=False, indent=2)
 
-    if question:
-        question_vec = model.encode([question])
-        D, I = index.search(np.array(question_vec).astype("float32"), k=3)
-        context = "\n---\n".join([all_chunks[i] for i in I[0]])
-        
-        st.markdown("### 🧠 Contexte extrait :")
-        st.write(context)
+    st.success("✅ Export terminé : fichiers `index.faiss` et `chunks.json` prêts à être téléchargés.")
+    st.markdown("Accédez à ces fichiers via : **Manage app > Files > Download**")
 
-        st.markdown("⚠️ Cette version ne génère pas encore de réponse résumée avec un LLM. Souhaitez-vous qu’on l’ajoute ?")
-
-import json
-
-# === Sauvegarde de l’index FAISS ===
-faiss.write_index(index, "index.faiss")
-st.success("💾 Index FAISS sauvegardé sous 'index.faiss'.")
-
-# === Sauvegarde des textes correspondants ===
-with open("chunks.json", "w", encoding="utf-8") as f:
-    json.dump(all_chunks, f, ensure_ascii=False, indent=2)
-st.success("💾 Texte sauvegardé sous 'chunks.json'.")
 
 
