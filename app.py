@@ -59,6 +59,6 @@ if uploaded_files:
         st.markdown("### 🧠 Contexte extrait :")
         st.write(context)
 
-        st.markdown("⚠️ Cette version ne génèr
+        st.markdown("⚠️ Cette version ne génère pas encore de réponse résumée avec un LLM. Souhaitez-vous qu’on l’ajoute ?")
 
 
