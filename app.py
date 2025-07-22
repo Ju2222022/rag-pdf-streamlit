@@ -57,7 +57,7 @@ if uploaded_files:
     if question:
         question_vec = model.encode([question])
         D, I = index.search(np.array(question_vec).astype("float32"), k=3)
-        context = "\n---\n".join([chunks[i] for i in I[0]])
+        context = "\n---\n".join([all_chunks[i] for i in I[0]])
         
         st.markdown("### 🧠 Contexte extrait :")
         st.write(context)
