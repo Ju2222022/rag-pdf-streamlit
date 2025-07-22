@@ -61,4 +61,15 @@ if uploaded_files:
 
         st.markdown("⚠️ Cette version ne génère pas encore de réponse résumée avec un LLM. Souhaitez-vous qu’on l’ajoute ?")
 
+import json
+
+# === Sauvegarde de l’index FAISS ===
+faiss.write_index(index, "index.faiss")
+st.success("💾 Index FAISS sauvegardé sous 'index.faiss'.")
+
+# === Sauvegarde des textes correspondants ===
+with open("chunks.json", "w", encoding="utf-8") as f:
+    json.dump(all_chunks, f, ensure_ascii=False, indent=2)
+st.success("💾 Texte sauvegardé sous 'chunks.json'.")
+
 
