@@ -3,12 +3,14 @@ import fitz  # PyMuPDF
 import faiss
 import numpy as np
 import streamlit as st
-from sentence_transformers import SentenceTransformer
+import torch
 from tempfile import NamedTemporaryFile
+from sentence_transformers import SentenceTransformer
 
 # === CONFIG ===
 EMBED_MODEL = "all-MiniLM-L6-v2"
 model = SentenceTransformer(EMBED_MODEL)
+model.to(torch.device("cpu"))  # 🧠 Forcer l'utilisation du CPU
 
 def pdf_to_chunks(pdf_file, chunk_size=500):
     doc = fitz.open(pdf_file)
@@ -57,5 +59,6 @@ if uploaded_files:
         st.markdown("### 🧠 Contexte extrait :")
         st.write(context)
 
-        st.markdown("⚠️ Cette version ne génère pas encore de réponse résumée avec un LLM. Souhaitez-vous qu’on l’ajoute ?")
+        st.markdown("⚠️ Cette version ne génèr
+
 
