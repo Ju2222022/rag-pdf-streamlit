@@ -28,16 +28,25 @@ def build_faiss_index(embeddings):
 st.title("📘 Assistant conformité (PDF + IA)")
 st.write("Chargez un PDF réglementaire, posez une question, et obtenez une réponse basée sur le contenu.")
 
-uploaded_file = st.file_uploader("📤 Chargez un fichier PDF", type="pdf")
+uploaded_files = st.file_uploader("📤 Chargez un ou plusieurs fichiers PDF", type="pdf", accept_multiple_files=True)
 
-if uploaded_file:
-    with NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
-        tmp.write(uploaded_file.read())
-        tmp_path = tmp.name
+if uploaded_files:
+    all_chunks = []
 
-    st.success("✅ Fichier reçu. Lecture en cours...")
+    for f in uploaded_files:
+        with NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
+            tmp.write(f.read())
+            tmp_path = tmp.name
 
-    chunks = pdf_to_chunks(tmp_path)
+        st.info(f"📄 Lecture de : {f.name}")
+        chunks = pdf_to_chunks(tmp_path)
+        all_chunks.extend(chunks)
+
+    st.success(f"✅ {len(uploaded_files)} fichiers lus. {len(all_chunks)} morceaux extraits.")
+
+    embeddings = embed_chunks(all_chunks)
+    index = build_faiss_index(np.array(embeddings))
+
     embeddings = embed_chunks(chunks)
     index = build_faiss_index(np.array(embeddings))
 
