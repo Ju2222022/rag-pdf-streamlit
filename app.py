@@ -68,5 +68,13 @@ if selected_files:
     st.success("✅ Export terminé : fichiers `index.faiss` et `chunks.json` prêts à être téléchargés.")
     st.markdown("Accédez à ces fichiers via : **Manage app > Files > Download**")
 
+import streamlit as st
+
+with open("index.faiss", "rb") as f:
+    st.download_button("⬇️ Télécharger index.faiss", f, file_name="index.faiss")
+
+with open("chunks.json", "rb") as f:
+    st.download_button("⬇️ Télécharger chunks.json", f, file_name="chunks.json")
+
 
 
